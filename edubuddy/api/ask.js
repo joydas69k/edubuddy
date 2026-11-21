@@ -11,8 +11,6 @@ export default async function handler(req, res) {
     { kid: "a 10-year-old child", school: "a class 9-10 student", college: "a college student" }[level] ||
     "a school student";
 
-  // EduBuddy's mission: free, simple, quality learning for every student,
-  // including those who cannot afford tuition or coaching.
   const base =
     "You are EduBuddy, a kind and patient teacher whose mission is to give every student free, " +
     "quality learning, especially those who cannot afford tuition or coaching. " +
