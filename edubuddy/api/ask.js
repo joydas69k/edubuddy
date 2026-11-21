@@ -1,5 +1,9 @@
 export const config = { maxDuration: 60 };
 
+const MODEL = "gemini-3.8-flash";
+const MAX_TRIES = 3;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
   const { topic, level, mode } = req.body || {};
@@ -25,37 +29,56 @@ export default async function handler(req, res) {
   };
   const prompt = prompts[mode] || prompts.explain;
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 55000);
-  try {
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+  const body = JSON.stringify({
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: mode === "quiz" ? { responseMimeType: "application/json" } : {}
+  });
+
+  let lastError = "The AI could not answer right now. Please try again.";
+
+  for (let attempt = 1; attempt <= MAX_TRIES; attempt++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15000);
+    try {
+      const r = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: ctrl.signal,
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: mode === "quiz" ? { responseMimeType: "application/json" } : {}
-        })
-      }
-    );
-    const data = await r.json();
-    console.log("Gemini status:", r.status, JSON.stringify(data).slice(0, 500));
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) {
-      return res.status(500).json({
-        error: data?.error?.message || "The AI could not answer right now. Please try again."
+        body
       });
+      const data = await r.json();
+      console.log(`Attempt ${attempt} Gemini status:`, r.status, JSON.stringify(data).slice(0, 300));
+
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) {
+        return res.status(200).json({ text });
+      }
+
+      // Retry only when Google is overloaded or temporarily unavailable.
+      if (r.status === 503 || r.status === 500) {
+        lastError = "The AI is very busy right now. Please try again in a few seconds.";
+        if (attempt < MAX_TRIES) {
+          await sleep(1500);
+          continue;
+        }
+      } else {
+        // Quota, invalid key, etc.: retrying will not help.
+        return res.status(500).json({ error: data?.error?.message || lastError });
+      }
+    } catch (e) {
+      lastError =
+        e.name === "AbortError"
+          ? "The AI is taking too long. Please try again in a moment."
+          : "Server error: " + e.message;
+      if (attempt < MAX_TRIES) {
+        await sleep(1500);
+        continue;
+      }
+    } finally {
+      clearTimeout(timer);
     }
-    res.status(200).json({ text });
-  } catch (e) {
-    const msg =
-      e.name === "AbortError"
-        ? "The AI is taking too long. Please try again in a moment."
-        : "Server error: " + e.message;
-    res.status(500).json({ error: msg });
-  } finally {
-    clearTimeout(timer);
   }
+
+  return res.status(500).json({ error: lastError });
 }
