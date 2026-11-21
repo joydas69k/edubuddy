@@ -1,8 +1,7 @@
 export const config = { maxDuration: 60 };
 
-const MODEL = "gemini-3.8-flash";
-const MAX_TRIES = 3;
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Tried in this order. If one is busy, slow, or out of quota, we move to the next.
+const MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.1-flash-lite"];
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
@@ -29,56 +28,42 @@ export default async function handler(req, res) {
   };
   const prompt = prompts[mode] || prompts.explain;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
   const body = JSON.stringify({
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: mode === "quiz" ? { responseMimeType: "application/json" } : {}
   });
 
-  let lastError = "The AI could not answer right now. Please try again.";
+  let lastError = "The AI is very busy right now. Please try again in a few seconds.";
 
-  for (let attempt = 1; attempt <= MAX_TRIES; attempt++) {
+  for (const model of MODELS) {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 15000);
+    const timer = setTimeout(() => ctrl.abort(), 16000);
     try {
-      const r = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: ctrl.signal,
-        body
-      });
+      const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body }
+      );
       const data = await r.json();
-      console.log(`Attempt ${attempt} Gemini status:`, r.status, JSON.stringify(data).slice(0, 300));
+      console.log(`Model ${model} status:`, r.status, JSON.stringify(data).slice(0, 300));
 
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (text) {
-        return res.status(200).json({ text });
-      }
+      if (text) return res.status(200).json({ text });
 
-      // Retry only when Google is overloaded or temporarily unavailable.
-      if (r.status === 503 || r.status === 500) {
-        lastError = "The AI is very busy right now. Please try again in a few seconds.";
-        if (attempt < MAX_TRIES) {
-          await sleep(1500);
-          continue;
-        }
-      } else {
-        // Quota, invalid key, etc.: retrying will not help.
-        return res.status(500).json({ error: data?.error?.message || lastError });
+      lastError = data?.error?.message || lastError;
+      // Invalid API key: other models will not help.
+      if (r.status === 400 || r.status === 401 || r.status === 403) {
+        return res.status(500).json({ error: lastError });
       }
+      // 429 (quota), 503 (busy), 404 (model name), others: try the next model.
     } catch (e) {
       lastError =
         e.name === "AbortError"
           ? "The AI is taking too long. Please try again in a moment."
           : "Server error: " + e.message;
-      if (attempt < MAX_TRIES) {
-        await sleep(1500);
-        continue;
-      }
     } finally {
       clearTimeout(timer);
     }
   }
 
-  return res.status(500).json({ error: lastError });
+  return res.status(500).json({ error: "The AI is very busy right now. Please try again in a few seconds." });
 }
