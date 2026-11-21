@@ -18,7 +18,8 @@ input:focus{outline:none;border-color:var(--b)}
 .go{margin-top:14px;width:100%;padding:14px;border:0;border-radius:12px;font-size:1.05rem;font-weight:700;color:#fff;cursor:pointer;background:linear-gradient(90deg,var(--a),var(--b))}
 .go:disabled{opacity:.6}
 .label{color:var(--mut);font-size:.8rem;margin-top:14px;text-transform:uppercase;letter-spacing:.08em}
-#out{margin-top:18px;line-height:1.65;white-space:pre-wrap}
+#out{margin-top:18px;line-height:1.65}
+.txt{white-space:pre-wrap}
 .ex{margin-top:10px;font-size:.85rem;color:var(--mut)}.ex a{color:var(--b);cursor:pointer;margin-right:10px}
 .q{background:#0f1230;border-radius:14px;padding:14px;margin-top:12px}
 .opt{display:block;width:100%;text-align:left;margin-top:8px;padding:10px;border-radius:10px;border:1px solid #394090;background:transparent;color:var(--text);cursor:pointer}
@@ -30,10 +31,16 @@ input:focus{outline:none;border-color:var(--b)}
 </style></head><body><div class="wrap">
 <h1>🎓 Edu<span>Buddy</span></h1>
 <p class="sub">Free learning for every student. Type any topic and AI will make it simple.</p>
-<div class="mission">🌱 <b>Our mission:</b> Good teachers and coaching cost money. EduBuddy gives every student, no matter their background, a free, patient study buddy that explains things at their own level.</div>
+<div class="mission">🌱 <b>Our mission:</b> Good teachers and coaching cost money. EduBuddy gives every student, no matter their background, a free, patient study buddy that explains things at their own level, in their own language.</div>
 <div class="card">
   <input id="topic" placeholder="e.g. Photosynthesis, Newton's Laws, Recursion, Inflation..." maxlength="300">
   <div class="ex">Try: <a>Black Holes</a><a>Blockchain</a><a>Photosynthesis</a><a>Pythagoras Theorem</a></div>
+  <div class="label">Language</div>
+  <div class="row" id="langs">
+    <button class="chip on" data-v="en">English</button>
+    <button class="chip" data-v="hi">हिन्दी</button>
+    <button class="chip" data-v="hinglish">Hinglish</button>
+  </div>
   <div class="label">My level</div>
   <div class="row" id="levels">
     <button class="chip" data-v="kid">🧒 Beginner</button>
@@ -53,22 +60,43 @@ input:focus{outline:none;border-color:var(--b)}
 <div class="foot">Built so that no student is left behind. 💙</div>
 </div>
 <script>
-const $=s=>document.querySelector(s);let level="school",mode="explain";
+const $=s=>document.querySelector(s);let level="school",mode="explain",lang="en",lastText="";
 function pick(id,cb){document.querySelectorAll(id+" .chip").forEach(b=>b.onclick=()=>{document.querySelectorAll(id+" .chip").forEach(x=>x.classList.remove("on"));b.classList.add("on");cb(b.dataset.v)})}
-pick("#levels",v=>level=v);pick("#modes",v=>mode=v);
+pick("#levels",v=>level=v);pick("#modes",v=>mode=v);pick("#langs",v=>lang=v);
 document.querySelectorAll(".ex a").forEach(a=>a.onclick=()=>{$("#topic").value=a.textContent;go()});
 $("#go").onclick=go;$("#topic").onkeydown=e=>{if(e.key==="Enter")go()};
 const esc=s=>s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 function md(t){return esc(t).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>")}
+function plain(t){return t.replace(/\*\*/g,"").replace(/^\s*[\*\-]\s+/gm,"")}
 async function go(){
   const topic=$("#topic").value.trim();if(!topic)return $("#topic").focus();
-  const out=$("#out"),btn=$("#go");btn.disabled=true;out.innerHTML='<div class="spin">🤔 EduBuddy is thinking...</div>';
+  const out=$("#out"),btn=$("#go");btn.disabled=true;
+  if(window.speechSynthesis)speechSynthesis.cancel();
+  out.innerHTML='<div class="spin">🤔 EduBuddy is thinking...</div>';
   try{
-    const r=await fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({topic,level,mode})});
+    const r=await fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({topic,level,mode,lang})});
     const d=await r.json();if(!r.ok)throw new Error(d.error);
-    mode==="quiz"?quiz(JSON.parse(d.text)):out.innerHTML='<div class="card">'+md(d.text)+'</div>';
+    if(mode==="quiz"){quiz(JSON.parse(d.text))}
+    else{
+      lastText=plain(d.text);
+      out.innerHTML='<div class="card"><div class="txt">'+md(d.text)+'</div><div class="row"><button class="chip" id="rd">🔊 Read aloud</button><button class="chip" id="cp">📋 Copy</button></div></div>';
+      $("#rd").onclick=speak;$("#cp").onclick=copy;
+    }
   }catch(e){out.innerHTML='<div class="card">⚠️ '+esc(e.message)+'</div>'}
   btn.disabled=false;
+}
+function speak(){
+  if(!window.speechSynthesis)return alert("Read aloud is not supported in this browser.");
+  if(speechSynthesis.speaking){speechSynthesis.cancel();$("#rd").textContent="🔊 Read aloud";return}
+  const u=new SpeechSynthesisUtterance(lastText);
+  u.lang=lang==="hi"?"hi-IN":"en-IN";
+  u.onend=()=>{const b=$("#rd");if(b)b.textContent="🔊 Read aloud"};
+  $("#rd").textContent="⏹ Stop";speechSynthesis.speak(u);
+}
+async function copy(){
+  try{await navigator.clipboard.writeText(lastText);$("#cp").textContent="✅ Copied!"}
+  catch(e){$("#cp").textContent="Copy failed"}
+  setTimeout(()=>{const b=$("#cp");if(b)b.textContent="📋 Copy"},1500);
 }
 function quiz(qs){
   let score=0,done=0;const out=$("#out");out.innerHTML='<div class="card" id="qs"></div>';
