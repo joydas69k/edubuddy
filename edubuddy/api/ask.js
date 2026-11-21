@@ -1,4 +1,6 @@
-export const config = { maxDuration: 30 };
+export const config = { maxDuration: 60 };
+
+const MODELS = ["gemini-3.8-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
@@ -32,37 +34,41 @@ export default async function handler(req, res) {
   };
   const prompt = prompts[mode] || prompts.explain;
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 25000);
-  try {
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: ctrl.signal,
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: mode === "quiz" ? { responseMimeType: "application/json" } : {}
-        })
+  let lastStatus = 0;
+  for (const model of MODELS) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 18000);
+    try {
+      const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: ctrl.signal,
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: mode === "quiz" ? { responseMimeType: "application/json" } : {}
+          })
+        }
+      );
+      const data = await r.json();
+      lastStatus = r.status;
+      console.log("Model:", model, "Status:", r.status, JSON.stringify(data).slice(0, 300));
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) {
+        clearTimeout(timer);
+        return res.status(200).json({ text });
       }
-    );
-    const data = await r.json();
-    console.log("Gemini status:", r.status, JSON.stringify(data).slice(0, 500));
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) {
-      return res.status(500).json({
-        error: data?.error?.message || "The AI could not answer right now. Please try again."
-      });
+    } catch (e) {
+      console.log("Model:", model, "Error:", e.name, e.message);
+    } finally {
+      clearTimeout(timer);
     }
-    res.status(200).json({ text });
-  } catch (e) {
-    const msg =
-      e.name === "AbortError"
-        ? "The AI is taking too long. Please try again in a moment."
-        : "Server error: " + e.message;
-    res.status(500).json({ error: msg });
-  } finally {
-    clearTimeout(timer);
   }
+
+  const msg =
+    lastStatus === 429
+      ? "EduBuddy has reached today's free AI limit. Please try again in a little while."
+      : "The AI is very busy right now. Please try again in a few seconds.";
+  res.status(500).json({ error: msg });
 }
