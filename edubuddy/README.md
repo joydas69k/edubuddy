@@ -1,18 +1,30 @@
-# 🎓 EduBuddy – Student Learning Assistant
-AI-powered learning platform that simplifies difficult concepts for students at their own understanding level.
+# 🎓 EduBuddy: Free Learning for Every Student
+
+A free AI study buddy for students who cannot afford tuition or coaching.
+Built for the PromptWars hackathon by Hack2skill.
+
+**Live demo:** https://edubuddy-edubuddy.vercel.app
 
 ## Features
-- 3 understanding levels: Beginner / School / College
-- Simple explanations, fun Indian-life analogies, interactive quizzes, 5-day study plans
-- Powered by Google Gemini API via secure Vercel serverless function
+- Simple explanations matched to the student's level (Beginner, School, College)
+- Fun analogies from everyday Indian life
+- 5-question quizzes with explanations
+- Free 5-day study plans for students with only a phone
+- English, Hindi and Hinglish, with read-aloud and copy
+- Accessible: keyboard friendly, labelled controls, screen reader support
 
-## Tech
-HTML/CSS/JS + Vercel Serverless (Node) + Gemini 2.5 Flash
+## Tech stack
+Gemini API, JavaScript, Vercel serverless functions, GitHub
 
-## Run locally
-1. `npm i -g vercel`
-2. Create `.env` with `GEMINI_API_KEY=your_key`
-3. `vercel dev`
+## Run tests
+    npm test
 
-## Deploy
-Push to GitHub → Import in Vercel → add env var `GEMINI_API_KEY`.
+## Setup
+1. Add `GEMINI_API_KEY` as an environment variable in Vercel.
+2. Deploy. The API key stays on the server and is never exposed to the browser.
+
+## Project structure
+- `index.html`: user interface
+- `api/ask.js`: serverless function (model fallback, caching, validation)
+- `lib/prompts.js`: prompt building and input validation
+- `tests/`: automated tests

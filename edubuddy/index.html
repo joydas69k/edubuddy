@@ -1,90 +1,134 @@
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="EduBuddy is a free AI study buddy that explains any topic in English, Hindi or Hinglish, with quizzes and study plans.">
 <title>EduBuddy – Free Learning for Every Student</title>
 <style>
-:root{--bg:#0f1226;--card:#1a1e3d;--text:#eef0ff;--mut:#9aa0c8;--a:#7c5cff;--b:#22d3ee;--ok:#22c55e;--bad:#ef4444}
+:root{--bg:#0f1226;--card:#1a1e3d;--text:#eef0ff;--mut:#b4b9de;--a:#6b4bf0;--b:#22d3ee;--ok:#22c55e;--bad:#ef4444}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,sans-serif;background:radial-gradient(circle at top,#232866,var(--bg) 60%);color:var(--text);min-height:100vh}
 .wrap{max-width:760px;margin:auto;padding:24px 16px 60px}
-h1{font-size:2.2rem;margin:0}h1 span{background:linear-gradient(90deg,var(--a),var(--b));-webkit-background-clip:text;color:transparent}
+h1{font-size:2.2rem;margin:0}h1 span{background:linear-gradient(90deg,#9b85ff,var(--b));-webkit-background-clip:text;color:transparent}
 .sub{color:var(--mut);margin:6px 0 22px}
 .mission{margin:0 0 18px;padding:12px 14px;border-radius:12px;background:#1a1e3d;border-left:4px solid var(--b);font-size:.92rem;line-height:1.5}
 .card{background:var(--card);border-radius:18px;padding:18px;box-shadow:0 8px 30px #0006}
-input{width:100%;padding:14px;border-radius:12px;border:2px solid #2d3270;background:#0f1230;color:var(--text);font-size:1rem}
-input:focus{outline:none;border-color:var(--b)}
+input{width:100%;padding:14px;border-radius:12px;border:2px solid #4a52a8;background:#0f1230;color:var(--text);font-size:1rem}
 .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-.chip{padding:8px 14px;border-radius:999px;border:1px solid #394090;background:transparent;color:var(--text);cursor:pointer;font-size:.9rem}
-.chip.on{background:var(--a);border-color:var(--a)}
-.go{margin-top:14px;width:100%;padding:14px;border:0;border-radius:12px;font-size:1.05rem;font-weight:700;color:#fff;cursor:pointer;background:linear-gradient(90deg,var(--a),var(--b))}
-.go:disabled{opacity:.6}
+.chip{padding:10px 14px;border-radius:999px;border:1px solid #5560c0;background:transparent;color:var(--text);cursor:pointer;font-size:.9rem;font-family:inherit}
+.chip[aria-pressed="true"]{background:var(--a);border-color:#fff}
+.go{margin-top:14px;width:100%;padding:14px;border:0;border-radius:12px;font-size:1.05rem;font-weight:700;color:#fff;cursor:pointer;background:linear-gradient(90deg,var(--a),#0e7490)}
+.go:disabled{opacity:.6;cursor:wait}
 .label{color:var(--mut);font-size:.8rem;margin-top:14px;text-transform:uppercase;letter-spacing:.08em}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:3px solid #fde047;outline-offset:2px}
+input:focus{outline:none;border-color:var(--b)}
+input:focus-visible{outline:3px solid #fde047;outline-offset:2px}
 #out{margin-top:18px;line-height:1.65}
 .txt{white-space:pre-wrap}
-.ex{margin-top:10px;font-size:.85rem;color:var(--mut)}.ex a{color:var(--b);cursor:pointer;margin-right:10px}
+.ex{margin-top:10px;font-size:.85rem;color:var(--mut);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ex button{background:none;border:0;border-bottom:1px solid var(--b);color:var(--b);cursor:pointer;font-size:.85rem;padding:4px 2px;font-family:inherit}
 .q{background:#0f1230;border-radius:14px;padding:14px;margin-top:12px}
-.opt{display:block;width:100%;text-align:left;margin-top:8px;padding:10px;border-radius:10px;border:1px solid #394090;background:transparent;color:var(--text);cursor:pointer}
+.opt{display:block;width:100%;text-align:left;margin-top:8px;padding:12px;border-radius:10px;border:1px solid #5560c0;background:transparent;color:var(--text);cursor:pointer;font-family:inherit;font-size:.95rem}
 .opt.ok{background:#14532d;border-color:var(--ok)}.opt.bad{background:#7f1d1d;border-color:var(--bad)}
 .why{margin-top:8px;color:var(--mut);font-size:.9rem}
 .score{font-size:1.3rem;font-weight:700;margin-top:14px;text-align:center}
 .spin{text-align:center;color:var(--mut);padding:20px}
 .foot{margin-top:28px;text-align:center;color:var(--mut);font-size:.85rem}
-</style></head><body><div class="wrap">
-<h1>🎓 Edu<span>Buddy</span></h1>
-<p class="sub">Free learning for every student. Type any topic and AI will make it simple.</p>
-<div class="mission">🌱 <b>Our mission:</b> Good teachers and coaching cost money. EduBuddy gives every student, no matter their background, a free, patient study buddy that explains things at their own level, in their own language.</div>
-<div class="card">
-  <input id="topic" placeholder="e.g. Photosynthesis, Newton's Laws, Recursion, Inflation..." maxlength="300">
-  <div class="ex">Try: <a>Black Holes</a><a>Blockchain</a><a>Photosynthesis</a><a>Pythagoras Theorem</a></div>
-  <div class="label">Language</div>
-  <div class="row" id="langs">
-    <button class="chip on" data-v="en">English</button>
-    <button class="chip" data-v="hi">हिन्दी</button>
-    <button class="chip" data-v="hinglish">Hinglish</button>
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto;transition:none!important;animation:none!important}}
+</style></head><body>
+<main class="wrap">
+<header>
+  <h1>🎓 Edu<span>Buddy</span></h1>
+  <p class="sub">Free learning for every student. Type any topic and AI will make it simple.</p>
+</header>
+<section class="mission" aria-label="Our mission">🌱 <b>Our mission:</b> Good teachers and coaching cost money. EduBuddy gives every student, no matter their background, a free, patient study buddy that explains things at their own level, in their own language.</section>
+
+<section class="card" aria-label="Ask EduBuddy">
+  <label for="topic" class="label" style="margin-top:0">What do you want to learn?</label>
+  <input id="topic" placeholder="e.g. Photosynthesis, Newton's Laws, Recursion, Inflation..." maxlength="300" autocomplete="off" style="margin-top:8px">
+  <div class="ex" aria-label="Example topics"><span>Try:</span>
+    <button type="button">Black Holes</button><button type="button">Blockchain</button><button type="button">Photosynthesis</button><button type="button">Pythagoras Theorem</button>
   </div>
-  <div class="label">My level</div>
-  <div class="row" id="levels">
-    <button class="chip" data-v="kid">🧒 Beginner</button>
-    <button class="chip on" data-v="school">📘 School</button>
-    <button class="chip" data-v="college">🎓 College</button>
+
+  <div class="label" id="lbl-lang">Language</div>
+  <div class="row" id="langs" role="group" aria-labelledby="lbl-lang">
+    <button type="button" class="chip" data-v="en" aria-pressed="true">English</button>
+    <button type="button" class="chip" data-v="hi" aria-pressed="false" lang="hi">हिन्दी</button>
+    <button type="button" class="chip" data-v="hinglish" aria-pressed="false">Hinglish</button>
   </div>
-  <div class="label">I want</div>
-  <div class="row" id="modes">
-    <button class="chip on" data-v="explain">💡 Simple Explanation</button>
-    <button class="chip" data-v="analogy">🏏 Fun Analogy</button>
-    <button class="chip" data-v="quiz">📝 Quiz</button>
-    <button class="chip" data-v="plan">📅 5-Day Plan</button>
+
+  <div class="label" id="lbl-level">My level</div>
+  <div class="row" id="levels" role="group" aria-labelledby="lbl-level">
+    <button type="button" class="chip" data-v="kid" aria-pressed="false">🧒 Beginner</button>
+    <button type="button" class="chip" data-v="school" aria-pressed="true">📘 School</button>
+    <button type="button" class="chip" data-v="college" aria-pressed="false">🎓 College</button>
   </div>
-  <button class="go" id="go">Explain it to me! ✨</button>
-</div>
-<div id="out"></div>
-<div class="foot">Built so that no student is left behind. 💙</div>
-</div>
+
+  <div class="label" id="lbl-mode">I want</div>
+  <div class="row" id="modes" role="group" aria-labelledby="lbl-mode">
+    <button type="button" class="chip" data-v="explain" aria-pressed="true">💡 Simple Explanation</button>
+    <button type="button" class="chip" data-v="analogy" aria-pressed="false">🏏 Fun Analogy</button>
+    <button type="button" class="chip" data-v="quiz" aria-pressed="false">📝 Quiz</button>
+    <button type="button" class="chip" data-v="plan" aria-pressed="false">📅 5-Day Plan</button>
+  </div>
+  <button type="button" class="go" id="go">Explain it to me! ✨</button>
+</section>
+
+<div id="out" role="region" aria-live="polite" aria-label="EduBuddy answer"></div>
+<footer class="foot">Built so that no student is left behind. 💙</footer>
+</main>
 <script>
-const $=s=>document.querySelector(s);let level="school",mode="explain",lang="en",lastText="";
-function pick(id,cb){document.querySelectorAll(id+" .chip").forEach(b=>b.onclick=()=>{document.querySelectorAll(id+" .chip").forEach(x=>x.classList.remove("on"));b.classList.add("on");cb(b.dataset.v)})}
+const $=s=>document.querySelector(s);
+let level="school",mode="explain",lang="en",lastText="";
+
+function pick(id,cb){
+  const btns=document.querySelectorAll(id+" .chip");
+  btns.forEach(b=>b.onclick=()=>{
+    btns.forEach(x=>x.setAttribute("aria-pressed","false"));
+    b.setAttribute("aria-pressed","true");cb(b.dataset.v);
+  });
+}
 pick("#levels",v=>level=v);pick("#modes",v=>mode=v);pick("#langs",v=>lang=v);
-document.querySelectorAll(".ex a").forEach(a=>a.onclick=()=>{$("#topic").value=a.textContent;go()});
-$("#go").onclick=go;$("#topic").onkeydown=e=>{if(e.key==="Enter")go()};
-const esc=s=>s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
-function md(t){return esc(t).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>")}
-function plain(t){return t.replace(/\*\*/g,"").replace(/^\s*[\*\-]\s+/gm,"")}
+
+document.querySelectorAll(".ex button").forEach(b=>b.onclick=()=>{$("#topic").value=b.textContent;go()});
+$("#go").onclick=go;
+$("#topic").onkeydown=e=>{if(e.key==="Enter")go()};
+
+const esc=s=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const md=t=>esc(t).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");
+const plain=t=>t.replace(/\*\*/g,"").replace(/^\s*[\*\-]\s+/gm,"");
+const outLang=()=>lang==="hi"?"hi":"en";
+
+function parseQuiz(text){
+  const clean=text.replace(/```json|```/g,"").trim();
+  const qs=JSON.parse(clean);
+  if(!Array.isArray(qs)||!qs.length)throw new Error("bad quiz");
+  return qs;
+}
+
 async function go(){
-  const topic=$("#topic").value.trim();if(!topic)return $("#topic").focus();
-  const out=$("#out"),btn=$("#go");btn.disabled=true;
+  const topic=$("#topic").value.trim();
+  if(!topic)return $("#topic").focus();
+  const out=$("#out"),btn=$("#go");
+  btn.disabled=true;btn.setAttribute("aria-busy","true");
   if(window.speechSynthesis)speechSynthesis.cancel();
   out.innerHTML='<div class="spin">🤔 EduBuddy is thinking...</div>';
   try{
     const r=await fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({topic,level,mode,lang})});
-    const d=await r.json();if(!r.ok)throw new Error(d.error);
-    if(mode==="quiz"){quiz(JSON.parse(d.text))}
+    let d;try{d=await r.json()}catch(_){throw new Error("The server sent an unexpected reply. Please try again.")}
+    if(!r.ok)throw new Error(d.error||"Something went wrong. Please try again.");
+    if(mode==="quiz"){quiz(parseQuiz(d.text))}
     else{
       lastText=plain(d.text);
-      out.innerHTML='<div class="card"><div class="txt">'+md(d.text)+'</div><div class="row"><button class="chip" id="rd">🔊 Read aloud</button><button class="chip" id="cp">📋 Copy</button></div></div>';
+      out.innerHTML='<div class="card"><div class="txt" lang="'+outLang()+'">'+md(d.text)+'</div><div class="row"><button type="button" class="chip" id="rd">🔊 Read aloud</button><button type="button" class="chip" id="cp">📋 Copy</button></div></div>';
       $("#rd").onclick=speak;$("#cp").onclick=copy;
     }
-  }catch(e){out.innerHTML='<div class="card">⚠️ '+esc(e.message)+'</div>'}
-  btn.disabled=false;
+  }catch(e){
+    const msg=e instanceof SyntaxError?"The quiz could not be created. Please try again.":e.message;
+    out.innerHTML='<div class="card" role="alert">⚠️ '+esc(msg)+'</div>';
+  }
+  btn.disabled=false;btn.removeAttribute("aria-busy");
 }
+
 function speak(){
   if(!window.speechSynthesis)return alert("Read aloud is not supported in this browser.");
   if(speechSynthesis.speaking){speechSynthesis.cancel();$("#rd").textContent="🔊 Read aloud";return}
@@ -93,24 +137,32 @@ function speak(){
   u.onend=()=>{const b=$("#rd");if(b)b.textContent="🔊 Read aloud"};
   $("#rd").textContent="⏹ Stop";speechSynthesis.speak(u);
 }
+
 async function copy(){
   try{await navigator.clipboard.writeText(lastText);$("#cp").textContent="✅ Copied!"}
   catch(e){$("#cp").textContent="Copy failed"}
   setTimeout(()=>{const b=$("#cp");if(b)b.textContent="📋 Copy"},1500);
 }
+
 function quiz(qs){
-  let score=0,done=0;const out=$("#out");out.innerHTML='<div class="card" id="qs"></div>';
+  let score=0,done=0;
+  const out=$("#out");out.innerHTML='<div class="card" id="qs"></div>';
   qs.forEach((q,i)=>{
-    const d=document.createElement("div");d.className="q";
+    const d=document.createElement("div");d.className="q";d.lang=outLang();
     d.innerHTML=`<b>Q${i+1}. ${esc(q.q)}</b>`;
     q.options.forEach((o,j)=>{
-      const b=document.createElement("button");b.className="opt";b.textContent=o;
-      b.onclick=()=>{if(d.dataset.d)return;d.dataset.d=1;done++;
-        const bs=d.querySelectorAll(".opt");bs[q.answer].classList.add("ok");
-        if(j===q.answer)score++;else b.classList.add("bad");
+      const b=document.createElement("button");b.type="button";b.className="opt";b.textContent=o;
+      b.onclick=()=>{
+        if(d.dataset.d)return;d.dataset.d=1;done++;
+        const bs=d.querySelectorAll(".opt");
+        bs[q.answer].classList.add("ok");bs[q.answer].textContent+=" ✓ (correct)";
+        if(j===q.answer)score++;else{b.classList.add("bad");b.textContent+=" ✗ (wrong)"}
         d.insertAdjacentHTML("beforeend",`<div class="why">💡 ${esc(q.why)}</div>`);
-        if(done===qs.length)$("#qs").insertAdjacentHTML("beforeend",`<div class="score">Score: ${score}/${qs.length} ${score>=4?"🏆":score>=2?"👍":"💪 Try again, you can do it!"}</div>`)};
-      d.appendChild(b)});
-    $("#qs").appendChild(d)});
+        if(done===qs.length)$("#qs").insertAdjacentHTML("beforeend",`<div class="score">Score: ${score}/${qs.length} ${score>=4?"🏆":score>=2?"👍":"💪 Try again, you can do it!"}</div>`);
+      };
+      d.appendChild(b);
+    });
+    $("#qs").appendChild(d);
+  });
 }
 </script></body></html>
