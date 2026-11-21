@@ -1,4 +1,7 @@
-export const config = { maxDuration: 30 };
+export const config = { maxDuration: 60 };
+
+const MODELS = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-flash-lite-latest"];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
@@ -13,31 +16,31 @@ export default async function handler(req, res) {
     quiz: `Create 5 multiple-choice questions on "${topic}" for ${lvl}. Respond ONLY with JSON, no markdown: [{"q":"...","options":["A","B","C","D"],"answer":0,"why":"short explanation"}] where answer is the index of the correct option.`
   };
   const prompt = prompts[mode] || prompts.explain;
+  const body = JSON.stringify({
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: mode === "quiz" ? { responseMimeType: "application/json" } : {}
+  });
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 25000);
-  try {
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: ctrl.signal,
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: mode === "quiz" ? { responseMimeType: "application/json" } : {}
-        })
+  let lastError = "AI ne jawab nahi diya";
+  for (const model of MODELS) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const r = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+          { method: "POST", headers: { "Content-Type": "application/json" }, body, signal: AbortSignal.timeout(15000) }
+        );
+        const data = await r.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) return res.status(200).json({ text });
+        lastError = data?.error?.message || lastError;
+        console.log(model, r.status, lastError);
+        if (![429, 500, 503, 404].includes(r.status)) break;
+      } catch (e) {
+        lastError = e.name === "TimeoutError" ? "AI ne der laga di" : e.message;
+        console.log(model, lastError);
       }
-    );
-    const data = await r.json();
-    console.log("Gemini status:", r.status, JSON.stringify(data).slice(0, 500));
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) return res.status(500).json({ error: data?.error?.message || "AI ne jawab nahi diya" });
-    res.status(200).json({ text });
-  } catch (e) {
-    const msg = e.name === "AbortError" ? "AI ne bohot der laga di, dobara try karo." : "Server error: " + e.message;
-    res.status(500).json({ error: msg });
-  } finally {
-    clearTimeout(timer);
+      await sleep(800);
+    }
   }
+  res.status(500).json({ error: "AI abhi busy hai, 1 minute baad dobara try karo. (" + lastError + ")" });
 }
