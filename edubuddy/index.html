@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EduBuddy – Student Learning Assistant</title>
+<style>
+:root{--bg:#0f1226;--card:#1a1e3d;--text:#eef0ff;--mut:#9aa0c8;--a:#7c5cff;--b:#22d3ee;--ok:#22c55e;--bad:#ef4444}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,sans-serif;background:radial-gradient(circle at top,#232866,var(--bg) 60%);color:var(--text);min-height:100vh}
+.wrap{max-width:760px;margin:auto;padding:24px 16px 60px}
+h1{font-size:2.2rem;margin:0}h1 span{background:linear-gradient(90deg,var(--a),var(--b));-webkit-background-clip:text;color:transparent}
+.sub{color:var(--mut);margin:6px 0 22px}
+.card{background:var(--card);border-radius:18px;padding:18px;box-shadow:0 8px 30px #0006}
+input{width:100%;padding:14px;border-radius:12px;border:2px solid #2d3270;background:#0f1230;color:var(--text);font-size:1rem}
+input:focus{outline:none;border-color:var(--b)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.chip{padding:8px 14px;border-radius:999px;border:1px solid #394090;background:transparent;color:var(--text);cursor:pointer;font-size:.9rem}
+.chip.on{background:var(--a);border-color:var(--a)}
+.go{margin-top:14px;width:100%;padding:14px;border:0;border-radius:12px;font-size:1.05rem;font-weight:700;color:#fff;cursor:pointer;background:linear-gradient(90deg,var(--a),var(--b))}
+.go:disabled{opacity:.6}
+.label{color:var(--mut);font-size:.8rem;margin-top:14px;text-transform:uppercase;letter-spacing:.08em}
+#out{margin-top:18px;line-height:1.65;white-space:pre-wrap}
+.ex{margin-top:10px;font-size:.85rem;color:var(--mut)}.ex a{color:var(--b);cursor:pointer;margin-right:10px}
+.q{background:#0f1230;border-radius:14px;padding:14px;margin-top:12px}
+.opt{display:block;width:100%;text-align:left;margin-top:8px;padding:10px;border-radius:10px;border:1px solid #394090;background:transparent;color:var(--text);cursor:pointer}
+.opt.ok{background:#14532d;border-color:var(--ok)}.opt.bad{background:#7f1d1d;border-color:var(--bad)}
+.why{margin-top:8px;color:var(--mut);font-size:.9rem}
+.score{font-size:1.3rem;font-weight:700;margin-top:14px;text-align:center}
+.spin{text-align:center;color:var(--mut);padding:20px}
+</style></head><body><div class="wrap">
+<h1>🎓 Edu<span>Buddy</span></h1>
+<p class="sub">Mushkil topic? Bas naam likho — AI use simple bana dega.</p>
+<div class="card">
+  <input id="topic" placeholder="e.g. Photosynthesis, Newton's Laws, Recursion, Inflation..." maxlength="300">
+  <div class="ex">Try: <a>Black Holes</a><a>Blockchain</a><a>Photosynthesis</a><a>Pythagoras Theorem</a></div>
+  <div class="label">Meri understanding level</div>
+  <div class="row" id="levels">
+    <button class="chip" data-v="kid">🧒 Beginner</button>
+    <button class="chip on" data-v="school">📘 School</button>
+    <button class="chip" data-v="college">🎓 College</button>
+  </div>
+  <div class="label">Mujhe chahiye</div>
+  <div class="row" id="modes">
+    <button class="chip on" data-v="explain">💡 Simple Explanation</button>
+    <button class="chip" data-v="analogy">🏏 Fun Analogy</button>
+    <button class="chip" data-v="quiz">📝 Quiz</button>
+    <button class="chip" data-v="plan">📅 5-Day Plan</button>
+  </div>
+  <button class="go" id="go">Samjhao! ✨</button>
+</div>
+<div id="out"></div>
+</div>
+<script>
+const $=s=>document.querySelector(s);let level="school",mode="explain";
+function pick(id,cb){document.querySelectorAll(id+" .chip").forEach(b=>b.onclick=()=>{document.querySelectorAll(id+" .chip").forEach(x=>x.classList.remove("on"));b.classList.add("on");cb(b.dataset.v)})}
+pick("#levels",v=>level=v);pick("#modes",v=>mode=v);
+document.querySelectorAll(".ex a").forEach(a=>a.onclick=()=>{$("#topic").value=a.textContent;go()});
+$("#go").onclick=go;$("#topic").onkeydown=e=>{if(e.key==="Enter")go()};
+const esc=s=>s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+function md(t){return esc(t).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>")}
+async function go(){
+  const topic=$("#topic").value.trim();if(!topic)return $("#topic").focus();
+  const out=$("#out"),btn=$("#go");btn.disabled=true;out.innerHTML='<div class="spin">🤔 AI soch raha hai...</div>';
+  try{
+    const r=await fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({topic,level,mode})});
+    const d=await r.json();if(!r.ok)throw new Error(d.error);
+    mode==="quiz"?quiz(JSON.parse(d.text)):out.innerHTML='<div class="card">'+md(d.text)+'</div>';
+  }catch(e){out.innerHTML='<div class="card">⚠️ '+esc(e.message)+'</div>'}
+  btn.disabled=false;
+}
+function quiz(qs){
+  let score=0,done=0;const out=$("#out");out.innerHTML='<div class="card" id="qs"></div>';
+  qs.forEach((q,i)=>{
+    const d=document.createElement("div");d.className="q";
+    d.innerHTML=`<b>Q${i+1}. ${esc(q.q)}</b>`;
+    q.options.forEach((o,j)=>{
+      const b=document.createElement("button");b.className="opt";b.textContent=o;
+      b.onclick=()=>{if(d.dataset.d)return;d.dataset.d=1;done++;
+        const bs=d.querySelectorAll(".opt");bs[q.answer].classList.add("ok");
+        if(j===q.answer)score++;else b.classList.add("bad");
+        d.insertAdjacentHTML("beforeend",`<div class="why">💡 ${esc(q.why)}</div>`);
+        if(done===qs.length)$("#qs").insertAdjacentHTML("beforeend",`<div class="score">Score: ${score}/${qs.length} ${score>=4?"🏆":score>=2?"👍":"💪 Phir try karo!"}</div>`)};
+      d.appendChild(b)});
+    $("#qs").appendChild(d)});
+}
+</script></body></html>
